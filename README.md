@@ -56,7 +56,7 @@ If using Heroku Quick Deploy, **you can skip this section**.
 There are a few different ways to begin using the app, depending on your preferences:
 
 ### A) [Heroku Quick Deploy](https://heroku.com/about)
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/benbusby/whoogle-search/tree/heroku-app)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/benbusby/whoogle-search/tree/heroku-app-beta)
 
 *Note: Requires a (free) Heroku account*
 
@@ -220,6 +220,9 @@ heroku open
 This series of commands can take a while, but once you run it once, you shouldn't have to run it again. The final command, `heroku open` will launch a tab in your web browser, where you can test out Whoogle and even [set it as your primary search engine](https://github.com/benbusby/whoogle#set-whoogle-as-your-primary-search-engine).
 You may also edit environment variables from your app’s Settings tab in the Heroku Dashboard.
 
+#### Arch Linux & Arch-based Distributions
+There is an [AUR package available](https://aur.archlinux.org/packages/whoogle-git/), as well as a pre-built and daily updated package available at [Chaotic-AUR](https://chaotic.cx).
+
 #### Using your own server, or alternative container deployment
 There are other methods for deploying docker containers that are well outlined in [this article](https://rollout.io/blog/the-shortlist-of-docker-hosting/), but there are too many to describe set up for each here. Generally it should be about the same amount of effort as the Heroku deployment.
 
@@ -245,6 +248,7 @@ There are a few optional environment variables available for customizing a Whoog
 | WHOOGLE_ALT_TW     | The twitter.com alternative to use when site alternatives are enabled in the config. |
 | WHOOGLE_ALT_YT     | The youtube.com alternative to use when site alternatives are enabled in the config. |
 | WHOOGLE_ALT_IG     | The instagram.com alternative to use when site alternatives are enabled in the config. |
+| WHOOGLE_ALT_RD     | The reddit.com alternative to use when site alternatives are enabled in the config. |
 
 ## Usage
 Same as most search engines, with the exception of filtering by time range.
@@ -338,6 +342,7 @@ A lot of the app currently piggybacks on Google's existing support for fetching 
 - https://whoogle.sdf.org
 - https://whoogle.tormentasolar.win/
 - https://whoogle.himiko.cloud
+- https://whoogle.kavin.rocks or http://whoogledq5f5wly5p4i2ohnvjwlihnlg4oajjum2oeddfwqdwupbuhqd.onion
 
 ## Screenshots
 #### Desktop

@@ -37,6 +37,9 @@ ENV WHOOGLE_PROXY_TYPE=$proxytype
 ARG proxyloc=''
 ENV WHOOGLE_PROXY_LOC=$proxyloc
 
+ARG whoogle_dotenv=''
+ENV WHOOGLE_DOTENV=$whoogle_dotenv
+
 ARG use_https=''
 ENV HTTPS_ONLY=$use_https
 
@@ -48,7 +51,7 @@ ENV WHOOGLE_ALT_TW=$twitter_alt
 ARG youtube_alt='invidious.snopyta.org'
 ENV WHOOGLE_ALT_YT=$youtube_alt
 ARG instagram_alt='bibliogram.art/u'
-ENV WHOOGLE_ALT_YT=$instagram_alt
+ENV WHOOGLE_ALT_IG=$instagram_alt
 ARG reddit_alt='libredd.it'
 ENV WHOOGLE_ALT_RD=$reddit_alt
 
@@ -59,6 +62,7 @@ COPY misc/tor/torrc /etc/tor/torrc
 COPY misc/tor/start-tor.sh misc/tor/start-tor.sh
 COPY app/ app/
 COPY run .
+COPY whoogle.env .
 
 EXPOSE $EXPOSE_PORT
 

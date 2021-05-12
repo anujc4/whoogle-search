@@ -1,5 +1,4 @@
 from app.filter import Filter, get_first_link
-from app.utils.session import generate_user_keys
 from app.request import gen_query
 from bs4 import BeautifulSoup as bsoup
 from cryptography.fernet import Fernet, InvalidToken
@@ -25,7 +24,7 @@ def needs_https(url: str) -> bool:
 
     """
     https_only = bool(os.getenv('HTTPS_ONLY', 0))
-    is_heroku = '.herokuapp.com' in url
+    is_heroku = url.endswith('.herokuapp.com')
     is_http = url.startswith('http://')
 
     return (is_heroku and is_http) or (https_only and is_http)
@@ -87,10 +86,6 @@ class Search:
             str: A valid query string
 
         """
-        # Generate a new element key each time a new search is performed
-        self.session['fernet_keys']['element_key'] = generate_user_keys(
-            cookies_disabled=self.cookies_disabled)['element_key']
-
         q = self.request_params.get('q')
 
         if q is None or len(q) == 0:
@@ -98,46 +93,48 @@ class Search:
         else:
             # Attempt to decrypt if this is an internal link
             try:
-                q = Fernet(
-                    self.session['fernet_keys']['text_key']
-                ).decrypt(q.encode()).decode()
+                q = Fernet(self.session['key']).decrypt(q.encode()).decode()
             except InvalidToken:
                 pass
-
-        # Reset text key
-        self.session['fernet_keys']['text_key'] = generate_user_keys(
-            cookies_disabled=self.cookies_disabled)['text_key']
 
         # Strip leading '! ' for "feeling lucky" queries
         self.feeling_lucky = q.startswith('! ')
         self.query = q[2:] if self.feeling_lucky else q
         return self.query
 
-    def generate_response(self) -> Tuple[Any, int]:
+    def generate_response(self) -> str:
         """Generates a response for the user's query
 
         Returns:
-            Tuple[Any, int]: A tuple in the format (response, # of elements)
-                             For example, in the case of a "feeling lucky"
-                             search, the response is a result URL, with no
-                             encrypted elements to account for. Otherwise, the
-                             response is a BeautifulSoup response body, with
-                             N encrypted elements to track before key regen.
+            str: A string response to the search query, in the form of a URL
+                 or string representation of HTML content.
 
         """
         mobile = 'Android' in self.user_agent or 'iPhone' in self.user_agent
 
-        content_filter = Filter(self.session['fernet_keys'],
+        content_filter = Filter(self.session['key'],
                                 mobile=mobile,
                                 config=self.config)
         full_query = gen_query(self.query,
                                self.request_params,
                                self.config,
                                content_filter.near)
-        get_body = g.user_request.send(query=full_query)
+
+        # force mobile search when view image is true and
+        # the request is not already made by a mobile
+        view_image = ('tbm=isch' in full_query
+                      and self.config.view_image
+                      and not g.user_request.mobile)
+
+        get_body = g.user_request.send(query=full_query,
+                                       force_mobile=view_image)
 
         # Produce cleanable html soup from response
         html_soup = bsoup(content_filter.reskin(get_body.text), 'html.parser')
+
+        # Replace current soup if view_image is active
+        if view_image:
+            html_soup = content_filter.view_image(html_soup)
 
         # Indicate whether or not a Tor connection is active
         tor_banner = bsoup('', 'html.parser')
@@ -146,7 +143,7 @@ class Search:
         html_soup.insert(0, tor_banner)
 
         if self.feeling_lucky:
-            return get_first_link(html_soup), 0
+            return get_first_link(html_soup)
         else:
             formatted_results = content_filter.clean(html_soup)
 
@@ -161,4 +158,4 @@ class Search:
                     continue
                 link['href'] += param_str
 
-            return formatted_results, content_filter.elements
+            return str(formatted_results)

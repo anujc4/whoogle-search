@@ -68,6 +68,8 @@ Provides:
 ### B) [Repl.it](https://repl.it)
 [![Run on Repl.it](https://repl.it/badge/github/benbusby/whoogle-search)](https://repl.it/github/benbusby/whoogle-search)
 
+*Note: Requires a (free) Replit account*
+
 Provides:
 - Free deployment of app
 - Free HTTPS url (https://\<app name\>.\<username\>\.repl\.co)
@@ -256,18 +258,21 @@ There are a few optional environment variables available for customizing a Whoog
 ### Config Environment Variables
 These environment variables allow setting default config values, but can be overwritten manually by using the home page config menu. These allow a shortcut for destroying/rebuilding an instance to the same config state every time.
 
-| Variable                | Description                                                     |
-| ----------------------- | --------------------------------------------------------------- |
-| WHOOGLE_CONFIG_COUNTRY  | Filter results by hosting country                               |
-| WHOOGLE_CONFIG_LANGUAGE | Set interface and search result language                        |
-| WHOOGLE_CONFIG_DARK     | Enable dark theme                                               |
-| WHOOGLE_CONFIG_SAFE     | Enable safe searches                                            |
-| WHOOGLE_CONFIG_ALTS     | Use social media site alternatives (nitter, invidious, etc)     |
-| WHOOGLE_CONFIG_TOR      | Use Tor routing (if available)                                  |
-| WHOOGLE_CONFIG_NEW_TAB  | Always open results in new tab                                  |
-| WHOOGLE_CONFIG_GET_ONLY | Search using GET requests only                                  |
-| WHOOGLE_CONFIG_URL      | The root url of the instance (`https://<your url>/`)            |
-| WHOOGLE_CONFIG_STYLE    | The custom CSS to use for styling (must be single line)         |
+| Variable                       | Description                                                     |
+| ------------------------------ | --------------------------------------------------------------- |
+| WHOOGLE_CONFIG_COUNTRY         | Filter results by hosting country                               |
+| WHOOGLE_CONFIG_LANGUAGE        | Set interface language                                          |
+| WHOOGLE_CONFIG_SEARCH_LANGUAGE | Set search result language                                      |
+| WHOOGLE_CONFIG_BLOCK           | Block websites from search results (use comma-separated list)   |
+| WHOOGLE_CONFIG_DARK            | Enable dark theme                                               |
+| WHOOGLE_CONFIG_SAFE            | Enable safe searches                                            |
+| WHOOGLE_CONFIG_ALTS            | Use social media site alternatives (nitter, invidious, etc)     |
+| WHOOGLE_CONFIG_TOR             | Use Tor routing (if available)                                  |
+| WHOOGLE_CONFIG_NEW_TAB         | Always open results in new tab                                  |
+| WHOOGLE_CONFIG_VIEW_IMAGE      | Enable View Image option                                        |
+| WHOOGLE_CONFIG_GET_ONLY        | Search using GET requests only                                  |
+| WHOOGLE_CONFIG_URL             | The root url of the instance (`https://<your url>/`)            |
+| WHOOGLE_CONFIG_STYLE           | The custom CSS to use for styling (should be single line)       |
 
 ## Usage
 Same as most search engines, with the exception of filtering by time range.
@@ -363,6 +368,8 @@ A lot of the app currently piggybacks on Google's existing support for fetching 
 - [https://whoogle.kavin.rocks](https://whoogle.kavin.rocks) or [http://whoogledq5f5wly5p4i2ohnvjwlihnlg4oajjum2oeddfwqdwupbuhqd.onion](http://whoogledq5f5wly5p4i2ohnvjwlihnlg4oajjum2oeddfwqdwupbuhqd.onion)
 - [https://search.garudalinux.org](https://search.garudalinux.org)
 - [https://whooglesearch.net/](https://whooglesearch.net/)
+- [https://search.whoogle.tech/](https://search.whoogle.tech/)
+- [https://search.flawcra.cc/](https://search.flawcra.cc/)
 
 ## Screenshots
 #### Desktop

@@ -3,13 +3,14 @@ from app.utils.results import *
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
 from cryptography.fernet import Fernet
+from flask import render_template
 import re
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
 
 class Filter:
-    def __init__(self, user_keys: dict, mobile=False, config=None) -> None:
+    def __init__(self, user_key: str, mobile=False, config=None) -> None:
         if config is None:
             config = {}
 
@@ -19,7 +20,7 @@ class Filter:
         self.new_tab = config['new_tab'] if 'new_tab' in config else False
         self.alt_redirect = config['alts'] if 'alts' in config else False
         self.mobile = mobile
-        self.user_keys = user_keys
+        self.user_key = user_key
         self.main_divs = ResultSet('')
         self._elements = 0
 
@@ -45,15 +46,11 @@ class Filter:
         if is_element:
             # Element paths are encrypted separately from text, to allow key
             # regeneration once all items have been served to the user
-            enc_path = Fernet(
-                self.user_keys['element_key']
-            ).encrypt(path.encode()).decode()
+            enc_path = Fernet(self.user_key).encrypt(path.encode()).decode()
             self._elements += 1
             return enc_path
 
-        return Fernet(
-            self.user_keys['text_key']
-        ).encrypt(path.encode()).decode()
+        return Fernet(self.user_key).encrypt(path.encode()).decode()
 
     def clean(self, soup) -> BeautifulSoup:
         self.main_divs = soup.find('div', {'id': 'main'})
@@ -156,8 +153,9 @@ class Filter:
 
         if src.startswith(LOGO_URL):
             # Re-brand with Whoogle logo
-            element['src'] = 'static/img/logo.png'
-            element['style'] = 'height:40px;width:162px'
+            element.replace_with(BeautifulSoup(
+                render_template('logo.html', dark=self.dark),
+                features='html.parser'))
             return
         elif src.startswith(GOOG_IMG) or GOOG_STATIC in src:
             element['src'] = BLANK_B64
@@ -168,7 +166,6 @@ class Filter:
             is_element=True) + '&type=' + urlparse.quote(mime)
 
     def update_styling(self, soup) -> None:
-        """"""
         # Remove unnecessary button(s)
         for button in soup.find_all('button'):
             button.decompose()
@@ -257,3 +254,65 @@ class Filter:
 
             # Replace link destination
             link_desc[0].replace_with(get_site_alt(link_desc[0]))
+
+    def view_image(self, soup) -> BeautifulSoup:
+        """Replaces the soup with a new one that handles mobile results and
+        adds the link of the image full res to the results.
+
+        Args:
+            soup: A BeautifulSoup object containing the image mobile results.
+
+        Returns:
+            BeautifulSoup: The new BeautifulSoup object
+        """
+
+        # get some tags that are unchanged between mobile and pc versions
+        search_input = soup.find_all('td', attrs={'class': "O4cRJf"})[0]
+        search_options = soup.find_all('div', attrs={'class': "M7pB2"})[0]
+        cor_suggested = soup.find_all('table', attrs={'class': "By0U9"})
+        next_pages = soup.find_all('table', attrs={'class': "uZgmoc"})[0]
+        information = soup.find_all('div', attrs={'class': "TuS8Ad"})[0]
+
+        results = []
+        # find results div
+        results_div = soup.find_all('div', attrs={'class': "nQvrDb"})[0]
+        # find all the results
+        results_all = results_div.find_all('div', attrs={'class': "lIMUZd"})
+
+        for item in results_all:
+            urls = item.find('a')['href'].split('&imgrefurl=')
+
+            img_url = urlparse.unquote(urls[0].replace('/imgres?imgurl=', ''))
+            webpage = urlparse.unquote(urls[1].split('&')[0])
+            img_tbn = urlparse.unquote(item.find('a').find('img')['src'])
+            results.append({
+                'domain': urlparse.urlparse(webpage).netloc,
+                'img_url': img_url,
+                'webpage': webpage,
+                'img_tbn': img_tbn
+            })
+
+        soup = BeautifulSoup(render_template('imageresults.html',
+                                             length=len(results),
+                                             results=results,
+                                             view_label="View Image"),
+                             features='html.parser')
+        # replace search input object
+        soup.find_all('td',
+                      attrs={'class': "O4cRJf"})[0].replaceWith(search_input)
+        # replace search options object (All, Images, Videos, etc.)
+        soup.find_all('div',
+                      attrs={'class': "M7pB2"})[0].replaceWith(search_options)
+        # replace correction suggested by google object if exists
+        if len(cor_suggested):
+            soup.find_all(
+                'table',
+                attrs={'class': "By0U9"}
+            )[0].replaceWith(cor_suggested[0])
+        # replace next page object at the bottom of the page
+        soup.find_all('table',
+                      attrs={'class': "uZgmoc"})[0].replaceWith(next_pages)
+        # replace information about user connection at the bottom of the page
+        soup.find_all('div',
+                      attrs={'class': "TuS8Ad"})[0].replaceWith(information)
+        return soup

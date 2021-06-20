@@ -6,7 +6,7 @@ services:
   whoogle-search:
     image: benbusby/whoogle-search
     container_name: whoogle-search
-    restart: on-failure:5
+    restart: unless-stopped
     pids_limit: 50
     mem_limit: 256mb
     memswap_limit: 256mb
@@ -28,7 +28,7 @@ services:
       # Proxy configuration, uncomment to enable
       #- WHOOGLE_PROXY_USER=<proxy username>
       #- WHOOGLE_PROXY_PASS=<proxy password>
-      #- WHOOGLE_PROXY_TYPE=<proxy type (http|socks4|socks5)
+      #- WHOOGLE_PROXY_TYPE=<proxy type (http|https|socks4|socks5)
       #- WHOOGLE_PROXY_LOC=<proxy host/ip>
       # Site alternative configurations, uncomment to enable
       # Note: If not set, the feature will still be available
@@ -37,8 +37,8 @@ services:
       #- WHOOGLE_ALT_YT=invidious.snopyta.org
       #- WHOOGLE_ALT_IG=bibliogram.art/u
       #- WHOOGLE_ALT_RD=libredd.it
+      #- WHOOGLE_ALT_TL=lingva.ml
     #env_file: # Alternatively, load variables from whoogle.env
       #- whoogle.env
     ports:
       - 5000:5000
-    restart: unless-stopped

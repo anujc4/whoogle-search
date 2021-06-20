@@ -110,6 +110,11 @@ def unknown_page(e):
     return redirect(g.app_location)
 
 
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    return ''
+
+
 @app.route('/', methods=['GET'])
 @auth_required
 def index():
@@ -125,6 +130,9 @@ def index():
     return render_template('index.html',
                            languages=app.config['LANGUAGES'],
                            countries=app.config['COUNTRIES'],
+                           translation=app.config['TRANSLATIONS'][
+                               g.user_config.get_localization_lang()
+                           ],
                            logo=render_template(
                                'logo.html',
                                dark=g.user_config.dark),
@@ -151,6 +159,14 @@ def opensearch():
         main_url=opensearch_url,
         request_type='' if get_only else 'method="post"'
     ), 200, {'Content-Disposition': 'attachment; filename="opensearch.xml"'}
+
+
+@app.route('/search.html', methods=['GET'])
+def search_html():
+    search_url = g.app_location
+    if search_url.endswith('/'):
+        search_url = search_url[:-1]
+    return render_template('search.html', url=search_url)
 
 
 @app.route('/autocomplete', methods=['GET', 'POST'])
@@ -213,6 +229,12 @@ def search():
     if search_util.feeling_lucky:
         return redirect(response, code=303)
 
+    # If the user is attempting to translate a string, determine the correct
+    # string for formatting the lingva.ml url
+    localization_lang = g.user_config.get_localization_lang()
+    translation = app.config['TRANSLATIONS'][localization_lang]
+    translate_to = localization_lang.replace('lang_', '')
+
     # Return 503 if temporarily blocked by captcha
     resp_code = 503 if has_captcha(str(response)) else 200
 
@@ -221,6 +243,17 @@ def search():
         query=urlparse.unquote(query),
         search_type=search_util.search_type,
         config=g.user_config,
+        lingva_url=app.config['TRANSLATE_URL'],
+        translation=translation,
+        translate_to=translate_to,
+        translate_str=query.replace(
+            'translate', ''
+        ).replace(
+            translation['translate'], ''
+        ),
+        is_translation=any(
+            _ in query.lower() for _ in [translation['translate'], 'translate']
+        ) and not search_util.search_type,  # Standard search queries only
         response=response,
         version_number=app.config['VERSION_NUMBER'],
         search_header=(render_template(

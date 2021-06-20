@@ -1,3 +1,4 @@
+from app.filter import clean_query
 from app.request import send_tor_signal
 from app.utils.session import generate_user_key
 from app.utils.bangs import gen_bangs_json
@@ -22,7 +23,7 @@ app.default_key = generate_user_key()
 app.no_cookie_ips = []
 app.config['SECRET_KEY'] = os.urandom(32)
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['VERSION_NUMBER'] = '0.4.1'
+app.config['VERSION_NUMBER'] = '0.5.4'
 app.config['APP_ROOT'] = os.getenv(
     'APP_ROOT',
     os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +34,8 @@ app.config['LANGUAGES'] = json.load(open(
     os.path.join(app.config['STATIC_FOLDER'], 'settings/languages.json')))
 app.config['COUNTRIES'] = json.load(open(
     os.path.join(app.config['STATIC_FOLDER'], 'settings/countries.json')))
+app.config['TRANSLATIONS'] = json.load(open(
+    os.path.join(app.config['STATIC_FOLDER'], 'settings/translations.json')))
 app.config['CONFIG_PATH'] = os.getenv(
     'CONFIG_VOLUME',
     os.path.join(app.config['STATIC_FOLDER'], 'config'))
@@ -48,7 +51,17 @@ app.config['BANG_PATH'] = os.getenv(
 app.config['BANG_FILE'] = os.path.join(
     app.config['BANG_PATH'],
     'bangs.json')
+
+# The alternative to Google Translate is treated a bit differently than other
+# social media site alternatives, in that it is used for any translation
+# related searches.
+translate_url = os.getenv('WHOOGLE_ALT_TL', 'https://lingva.ml')
+if not translate_url.startswith('http'):
+    translate_url = 'https://' + translate_url
+app.config['TRANSLATE_URL'] = translate_url
+
 app.config['CSP'] = 'default-src \'none\';' \
+                    'frame-src ' + translate_url + ';' \
                     'manifest-src \'self\';' \
                     'img-src \'self\' data:;' \
                     'style-src \'self\' \'unsafe-inline\';' \
@@ -56,6 +69,9 @@ app.config['CSP'] = 'default-src \'none\';' \
                     'media-src \'self\';' \
                     'connect-src \'self\';' \
                     'form-action \'self\';'
+
+# Templating functions
+app.jinja_env.globals.update(clean_query=clean_query)
 
 if not os.path.exists(app.config['CONFIG_PATH']):
     os.makedirs(app.config['CONFIG_PATH'])

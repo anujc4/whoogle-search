@@ -1,4 +1,5 @@
 from app.models.config import Config
+from datetime import datetime
 import xml.etree.ElementTree as ET
 import random
 import requests
@@ -9,6 +10,7 @@ from stem import Signal, SocketError
 from stem.control import Controller
 
 SEARCH_URL = 'https://www.google.com/search?gbv=1&q='
+MAPS_URL = 'https://maps.google.com/maps'
 AUTOCOMPLETE_URL = ('https://suggestqueries.google.com/'
                     'complete/search?client=toolbar&')
 
@@ -106,23 +108,28 @@ def gen_query(query, args, config, near_city=None) -> str:
             [_ for _ in lang if not _.isdigit()]
         )) if lang else ''
     else:
-        param_dict['lr'] = (
-            '&lr=' + config.lang_search
-        ) if config.lang_search else ''
+        param_dict['lr'] = '&lr=' + (
+            config.lang_search if config.lang_search else ''
+        )
 
     # 'nfpr' defines the exclusion of results from an auto-corrected query
     if 'nfpr' in args:
         param_dict['nfpr'] = '&nfpr=' + args.get('nfpr')
 
     param_dict['cr'] = ('&cr=' + config.ctry) if config.ctry else ''
-    param_dict['hl'] = (
-        '&hl=' + config.lang_interface.replace('lang_', '')
-    ) if config.lang_interface else ''
+    param_dict['hl'] = '&hl=' + (
+        config.lang_interface.replace('lang_', '')
+        if config.lang_interface else ''
+    )
     param_dict['safe'] = '&safe=' + ('active' if config.safe else 'off')
 
     # Block all sites specified in the user config
-    for blocked in config.block.split(','):
-        query += (' -site:' + blocked) if blocked else ''
+    unquoted_query = urlparse.unquote(query)
+    for blocked_site in config.block.replace(' ', '').split(','):
+        if not blocked_site:
+            continue
+        block = (' -site:' + blocked_site)
+        query += block if block not in unquoted_query else ''
 
     for val in param_dict.values():
         if not val:
@@ -147,24 +154,36 @@ class Request:
         # enable Tor for future requests
         send_tor_signal(Signal.HEARTBEAT)
 
-        self.language = config.lang_search
-        self.mobile = 'Android' in normal_ua or 'iPhone' in normal_ua
+        self.language = (
+            config.lang_search if config.lang_search else ''
+        )
+        self.mobile = bool(normal_ua) and ('Android' in normal_ua
+                                           or 'iPhone' in normal_ua)
         self.modified_user_agent = gen_user_agent(self.mobile)
         if not self.mobile:
             self.modified_user_agent_mobile = gen_user_agent(True)
 
         # Set up proxy, if previously configured
-        if os.environ.get('WHOOGLE_PROXY_LOC'):
+        proxy_path = os.environ.get('WHOOGLE_PROXY_LOC', '')
+        if proxy_path:
+            proxy_type = os.environ.get('WHOOGLE_PROXY_TYPE', '')
+            proxy_user = os.environ.get('WHOOGLE_PROXY_USER', '')
+            proxy_pass = os.environ.get('WHOOGLE_PROXY_PASS', '')
             auth_str = ''
-            if os.environ.get('WHOOGLE_PROXY_USER', ''):
-                auth_str = os.environ.get('WHOOGLE_PROXY_USER', '') + \
-                           ':' + os.environ.get('WHOOGLE_PROXY_PASS', '')
+            if proxy_user:
+                auth_str = proxy_user + ':' + proxy_pass
             self.proxies = {
-                'http': os.environ.get('WHOOGLE_PROXY_TYPE', '') + '://' +
-                auth_str + '@' + os.environ.get('WHOOGLE_PROXY_LOC', ''),
+                'https': proxy_type + '://' +
+                ((auth_str + '@') if auth_str else '') + proxy_path,
             }
-            self.proxies['https'] = self.proxies['http'].replace('http',
-                                                                 'https')
+
+            # Need to ensure both HTTP and HTTPS are in the proxy dict,
+            # regardless of underlying protocol
+            if proxy_type == 'https':
+                self.proxies['http'] = self.proxies['https'].replace(
+                    'https', 'http')
+            else:
+                self.proxies['http'] = self.proxies['https']
         else:
             self.proxies = {
                 'http': 'socks5://127.0.0.1:9050',
@@ -208,6 +227,8 @@ class Request:
             query: The optional query string for the request
             attempt: The number of attempts made for the request
                 (used for cycling through Tor identities, if enabled)
+            force_mobile: Optional flag to enable a mobile user agent
+                (used for fetching full size images in search results)
 
         Returns:
             Response: The Response object returned by the requests call
@@ -224,8 +245,11 @@ class Request:
 
         # FIXME: Should investigate this further to ensure the consent
         # view is suppressed correctly
+        now = datetime.now()
         cookies = {
-            'CONSENT': 'PENDING+999'
+            'CONSENT': 'YES+cb.{:d}{:02d}{:02d}-17-p0.de+F+678'.format(
+                now.year, now.month, now.day
+            )
         }
 
         # Validate Tor conn and request new identity if the last one failed

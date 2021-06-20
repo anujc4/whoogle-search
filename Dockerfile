@@ -16,7 +16,7 @@ FROM python:3.8-slim
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     tor \
-    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 ARG config_dir=/config
@@ -55,6 +55,8 @@ ARG instagram_alt='bibliogram.art/u'
 ENV WHOOGLE_ALT_IG=$instagram_alt
 ARG reddit_alt='libredd.it'
 ENV WHOOGLE_ALT_RD=$reddit_alt
+ARG translate_alt='lingva.ml'
+ENV WHOOGLE_ALT_TL=$translate_alt
 
 WORKDIR /whoogle
 
@@ -68,6 +70,6 @@ COPY whoogle.env .
 EXPOSE $EXPOSE_PORT
 
 HEALTHCHECK  --interval=30s --timeout=5s \
-  CMD wget -qO- --no-verbose --tries=1 http://localhost:${EXPOSE_PORT}/ || exit 1
+  CMD curl -f http://localhost:${EXPOSE_PORT}/healthz || exit 1
 
 CMD misc/tor/start-tor.sh & ./run
